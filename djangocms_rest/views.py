@@ -18,7 +18,10 @@ class APIView(DRFAPIView):
 
 
 class LanguageList(APIView):
-    """List of languages available for the site."""
+    """
+    List of languages available for the site. For each language the API returns the
+    link to the list of pages for that languages.
+    """
 
     def get(self, request, format=None):
         languages = get_languages().get(get_current_site(request).id, None)
