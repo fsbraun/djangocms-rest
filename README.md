@@ -1,4 +1,3 @@
-Sure, here's a basic `README.md` file for your Django CMS REST project:
 # Django CMS REST
 
 This is a demo project that provides RESTful APIs for Django CMS.

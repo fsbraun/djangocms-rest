@@ -1,8 +1,11 @@
 import time
 
-from cms.cache.placeholder import _get_placeholder_cache_key, _get_placeholder_cache_version_key
-from cms.models import Placeholder, CMSPlugin
-from cms.plugin_rendering import ContentRenderer, BaseRenderer
+from cms.cache.placeholder import (
+    _get_placeholder_cache_key,
+    _get_placeholder_cache_version_key,
+)
+from cms.models import Placeholder
+from cms.plugin_rendering import BaseRenderer
 from cms.utils.conf import get_cms_setting
 from cms.utils.plugins import get_plugins
 from django.contrib.sites.shortcuts import get_current_site
@@ -25,11 +28,15 @@ def _get_placeholder_cache_version(placeholder, lang, site_id):
     else:
         version = int(time.time() * 1000000)
         vary_on_list = []
-        _set_placeholder_cache_version(placeholder, lang, site_id, version, vary_on_list)
+        _set_placeholder_cache_version(
+            placeholder, lang, site_id, version, vary_on_list
+        )
     return version, vary_on_list
 
 
-def _set_placeholder_cache_version(placeholder, lang, site_id, version, vary_on_list=None, duration=None):
+def _set_placeholder_cache_version(
+    placeholder, lang, site_id, version, vary_on_list=None, duration=None
+):
     """
     Sets the (placeholder x lang)'s version and vary-on header-names list.
     """
@@ -55,8 +62,8 @@ def set_placeholder_rest_cache(placeholder, lang, site_id, content, request):
     key = _get_placeholder_cache_key(placeholder, lang, site_id, request) + ":rest"
 
     duration = min(
-        get_cms_setting('CACHE_DURATIONS')['content'],
-        placeholder.get_cache_expiration(request, now())
+        get_cms_setting("CACHE_DURATIONS")["content"],
+        placeholder.get_cache_expiration(request, now()),
     )
     cache.set(key, content, duration)
     # "touch" the cache-version, so that it stays as fresh as this content.
@@ -73,7 +80,10 @@ def get_placeholder_rest_cache(placeholder, lang, site_id, request):
     """
     from django.core.cache import cache
 
-    key = _get_placeholder_cache_key(placeholder, lang, site_id, request, soft=True) + ":rest"
+    key = (
+        _get_placeholder_cache_key(placeholder, lang, site_id, request, soft=True)
+        + ":rest"
+    )
     content = cache.get(key)
     return content
 
@@ -84,13 +94,14 @@ class PlaceholderRenderer(BaseRenderer):
     """
 
     def placeholder_cache_is_enabled(self):
-        if not get_cms_setting('PLACEHOLDER_CACHE'):
+        if not get_cms_setting("PLACEHOLDER_CACHE"):
             return False
         if self.request.user.is_staff:
             return False
         return True
 
     def render_placeholder(self, placeholder, context, language, use_cache=False):
+        context.update({"request": self.request})
         if use_cache and placeholder.cache_placeholder:
             use_cache = self.placeholder_cache_is_enabled()
         else:
@@ -100,7 +111,7 @@ class PlaceholderRenderer(BaseRenderer):
             cached_value = get_placeholder_rest_cache(
                 placeholder,
                 lang=language,
-                site_id=get_current_site().pk,
+                site_id=get_current_site(self.request).pk,
                 request=self.request,
             )
         else:
@@ -109,7 +120,7 @@ class PlaceholderRenderer(BaseRenderer):
         if cached_value is not None:
             # User has opted to use the cache
             # and there is something in the cache
-            return cached_value['content']
+            return cached_value["content"]
 
         plugin_content = self.render_plugins(
             placeholder,
@@ -121,7 +132,7 @@ class PlaceholderRenderer(BaseRenderer):
             set_placeholder_rest_cache(
                 placeholder,
                 lang=language,
-                site_id=get_current_site().pk,
+                site_id=get_current_site(self.request).pk,
                 content=plugin_content,
                 request=self.request,
             )
@@ -132,7 +143,9 @@ class PlaceholderRenderer(BaseRenderer):
 
         return plugin_content
 
-    def render_plugins(self, placeholder: Placeholder, language: str, context: dict) -> dict:
+    def render_plugins(
+        self, placeholder: Placeholder, language: str, context: dict
+    ) -> list:
         plugins = get_plugins(
             self.request,
             placeholder=placeholder,
@@ -144,17 +157,21 @@ class PlaceholderRenderer(BaseRenderer):
             for plugin in plugins:
                 plugin_content = self.render_plugin(plugin, context)
                 if getattr(plugin, "child_plugin_instances", None):
-                    plugin_content["children"] = render_children(plugin.child_plugin_instances)
+                    plugin_content["children"] = render_children(
+                        plugin.child_plugin_instances
+                    )
                 if plugin_content:
                     yield plugin_content
 
-        return render_children(plugins)
+        return list(render_children(plugins))
 
     def render_plugin(self, instance, context):
         instance, plugin = instance.get_plugin_instance()
         if not instance:
             return None
-        if hasattr(instance, "serializer") and issubclass(instance.serializer, serializers.Serializer):
+        if hasattr(instance, "serializer") and issubclass(
+            instance.serializer, serializers.Serializer
+        ):
             json = instance.serializer(instance, context=context).data
         if hasattr(instance, "serialize"):
             json = instance.serialize(context=context)
@@ -162,7 +179,14 @@ class PlaceholderRenderer(BaseRenderer):
         class PluginSerializer(serializers.ModelSerializer):
             class Meta:
                 model = instance.__class__
-                fields = '__all__'
+                exclude = (
+                    "id",
+                    "placeholder",
+                    "position",
+                    "creation_date",
+                    "changed_date",
+                    "parent",
+                )
 
         json = PluginSerializer(instance, context=context).data
         return json
@@ -170,9 +194,15 @@ class PlaceholderRenderer(BaseRenderer):
 
 class PlaceholderSerializer(serializers.Serializer):
     slot = serializers.CharField()
-    content = serializers.ListSerializer(child=serializers.JSONField(), allow_empty=True, required=False)
+    label = serializers.CharField()
+    language = serializers.CharField()
+    content = serializers.ListSerializer(
+        child=serializers.JSONField(), allow_empty=True, required=False
+    )
 
-    def __init__(self, request: Request, placeholder: Placeholder, language: str, *args, **kwargs):
+    def __init__(
+        self, request: Request, placeholder: Placeholder, language: str, *args, **kwargs
+    ):
         renderer = PlaceholderRenderer(request)
         placeholder.content = renderer.render_placeholder(
             placeholder,
@@ -180,4 +210,6 @@ class PlaceholderSerializer(serializers.Serializer):
             language=language,
             use_cache=True,
         )
+        placeholder.label = placeholder.get_label()
+        placeholder.language = language
         super().__init__(placeholder, *args, **kwargs)
