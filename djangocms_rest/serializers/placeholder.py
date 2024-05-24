@@ -5,10 +5,11 @@ from cms.cache.placeholder import (
     _get_placeholder_cache_version_key,
 )
 from cms.models import Placeholder
-from cms.plugin_rendering import BaseRenderer
+from cms.plugin_rendering import BaseRenderer, ContentRenderer
 from cms.utils.conf import get_cms_setting
 from cms.utils.plugins import get_plugins
 from django.contrib.sites.shortcuts import get_current_site
+from django.template.context import Context
 from django.template.defaulttags import now
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -210,6 +211,15 @@ class PlaceholderSerializer(serializers.Serializer):
             language=language,
             use_cache=True,
         )
+        if request.GET.get("html", False):
+            content_renderer = ContentRenderer(request)
+            placeholder.html = content_renderer.render_placeholder(
+                placeholder,
+                context=Context({"request": request, "LANGUAGE_CODE": language}),
+                language=language,
+                use_cache=True,
+            )
+            self.fields["html"] = serializers.CharField()
         placeholder.label = placeholder.get_label()
         placeholder.language = language
         super().__init__(placeholder, *args, **kwargs)

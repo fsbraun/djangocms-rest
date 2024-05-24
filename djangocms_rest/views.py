@@ -16,6 +16,8 @@ class APIView(DRFAPIView):
 
 
 class LanguageList(APIView):
+    """List of languages available for the site."""
+
     def get(self, request, format=None):
         languages = get_languages().get(get_current_site(request).id, None)
         if languages is None:
@@ -29,7 +31,7 @@ class LanguageList(APIView):
 
 class PageList(APIView):
     """
-    List all pages, or create a new page.
+    List of all pages on this site for a given language.
     """
 
     def get(self, request, language, format=None):
@@ -47,7 +49,8 @@ class PageList(APIView):
 
 class PageDetail(APIView):
     """
-    Retrieve, update or delete a page instance.
+    Retrieve a page instance. The page instance includes the placeholders and
+    their links to retrieve dynamic content.
     """
 
     def get_object(self, site, path):
@@ -78,6 +81,8 @@ class PageDetail(APIView):
 
 
 class PlaceholderDetail(APIView):
+    """Placeholder contain the dynamic content."""
+
     def get_placeholder(self, content_type_id, object_id, slot):
         try:
             placeholder = Placeholder.objects.get(

@@ -50,8 +50,8 @@ class RESTPage:
             self.xframe_options: str = page_content.xframe_options
             self.limit_visibility_in_menu: int = page_content.limit_visibility_in_menu
             self.language: str = page_content.language
-            self.creation_date: datetime.datetime = page_content.creation_date
-            self.changed_date: datetime.datetime = page_content.changed_date
+            self.creation_date: datetime.datetime | None = page_content.creation_date
+            self.changed_date: datetime.datetime | None = page_content.changed_date
         else:
             self.title: str = ""
             self.page_title: str = ""
@@ -66,8 +66,8 @@ class RESTPage:
             self.xframe_options: str = ""
             self.limit_visibility_in_menu: int = 0
             self.language: str = page_content.language
-            self.creation_date: datetime.datetime = page_content.creation_date
-            self.changed_date: datetime.datetime = page_content.changed_date
+            self.creation_date: datetime.datetime | None = None
+            self.changed_date: datetime.datetime | None = None
 
         self.absolute_url: str = page.get_absolute_url(language)
         self.path: str = page.get_path(language)
