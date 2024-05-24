@@ -9,10 +9,11 @@ from cms.plugin_rendering import BaseRenderer, ContentRenderer
 from cms.utils.conf import get_cms_setting
 from cms.utils.plugins import get_plugins
 from django.contrib.sites.shortcuts import get_current_site
-from django.template.context import Context
 from django.template.defaulttags import now
 from rest_framework import serializers
 from rest_framework.request import Request
+from sekizai.context import SekizaiContext
+from sekizai.helpers import get_varname
 
 
 def _get_placeholder_cache_version(placeholder, lang, site_id):
@@ -183,6 +184,7 @@ class PlaceholderRenderer(BaseRenderer):
                 exclude = (
                     "id",
                     "placeholder",
+                    "language",
                     "position",
                     "creation_date",
                     "changed_date",
@@ -212,14 +214,27 @@ class PlaceholderSerializer(serializers.Serializer):
             use_cache=True,
         )
         if request.GET.get("html", False):
-            content_renderer = ContentRenderer(request)
-            placeholder.html = content_renderer.render_placeholder(
-                placeholder,
-                context=Context({"request": request, "LANGUAGE_CODE": language}),
-                language=language,
-                use_cache=True,
-            )
-            self.fields["html"] = serializers.CharField()
+            html = self.render_html(request, placeholder, language)
+            for key, value in html.items():
+                if not hasattr(placeholder, key):
+                    setattr(placeholder, key, value)
+                    self.fields[key] = serializers.CharField()
         placeholder.label = placeholder.get_label()
         placeholder.language = language
         super().__init__(placeholder, *args, **kwargs)
+
+    def render_html(self, request, placeholder, language):
+        content_renderer = ContentRenderer(request)
+        context = SekizaiContext({"request": request, "LANGUAGE_CODE": language})
+        content = content_renderer.render_placeholder(
+            placeholder,
+            context=context,
+            language=language,
+            use_cache=True,
+        )
+        sekizai_blocks = context[get_varname()]
+
+        return {
+            "html": content,
+            **{key: "".join(value) for key, value in sekizai_blocks.items() if value},
+        }

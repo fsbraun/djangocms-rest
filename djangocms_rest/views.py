@@ -1,6 +1,7 @@
-from cms.models import Page, PageUrl, Placeholder
+from cms.models import Page, PageUrl, Placeholder, PageContent
 from cms.utils.conf import get_languages
 from cms.utils.i18n import get_language_tuple
+from cms.utils.page_permissions import user_can_view_page
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import Http404
 from django.urls import reverse
@@ -12,6 +13,7 @@ from djangocms_rest.serializers.placeholder import PlaceholderSerializer
 
 
 class APIView(DRFAPIView):
+    # This is a base class for all API views. It sets the allowed methods to GET and OPTIONS.
     http_method_names = ("get", "options")
 
 
@@ -30,9 +32,7 @@ class LanguageList(APIView):
 
 
 class PageList(APIView):
-    """
-    List of all pages on this site for a given language.
-    """
+    """List of all pages on this site for a given language."""
 
     def get(self, request, language, format=None):
         site = get_current_site(request)
@@ -42,7 +42,11 @@ class PageList(APIView):
         qs = Page.objects.filter(node__site=site)
         if request.user.is_anonymous:
             qs = qs.filter(login_required=False)
-        pages = (RESTPage(request, page, language=language) for page in qs)
+        pages = (
+            RESTPage(request, page, language=language)
+            for page in qs
+            if user_can_view_page(request.user, page)
+        )
         serializer = PageSerializer(pages, many=True, read_only=True)
         return Response(serializer.data)
 
@@ -74,6 +78,11 @@ class PageDetail(APIView):
         if language not in allowed_languages:
             raise Http404
         page = self.get_object(site, path)
+
+        # Check if the user has permission to view the page
+        if not user_can_view_page(request.user, page):
+            raise Http404
+
         serializer = PageSerializer(
             RESTPage(request, page, language=language), read_only=True
         )
@@ -81,7 +90,19 @@ class PageDetail(APIView):
 
 
 class PlaceholderDetail(APIView):
-    """Placeholder contain the dynamic content."""
+    """Placeholder contain the dynamic content. This view retrieves the content as a
+    structured nested object.
+
+    Attributes:
+
+    - "slot": The slot name of the placeholder.
+    - "content": The content of the placeholder as a nested JSON tree
+    - "language": The language of the content
+    - "label": The verbose label of the placeholder
+
+    Optional (if the get parameter `?html=1` is added to the API url):
+    - "html": The content rendered as html. Sekizai blocks such as "js" or "css" will be added
+      as separate attributes"""
 
     def get_placeholder(self, content_type_id, object_id, slot):
         try:
@@ -102,6 +123,11 @@ class PlaceholderDetail(APIView):
             .first()
         )
         if source is None:
+            raise Http404
+        # Check if the user has permission to view the page (should the placeholder be on a page)
+        if isinstance(source, PageContent) and not user_can_view_page(
+            request.user, source.page
+        ):
             raise Http404
         serializer = PlaceholderSerializer(
             request, placeholder, language, read_only=True
