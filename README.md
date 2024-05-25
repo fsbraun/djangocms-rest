@@ -11,8 +11,12 @@ Please note that this project is in its early stages and more features will be a
 
 ## To dos
 
-- Full language fallback support
+- Full language fallback support on page level
+- Menu api
 - Admin api for editing content
+  - Placeholder API (adding, deleting, plugins)
+  - Plugin API (changing, rendering, getting options)    
+- Tests
 
 ## Requirements
 
