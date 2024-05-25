@@ -29,7 +29,7 @@ class LanguageList(APIView):
             raise Http404
         for conf in languages:
             conf["pages"] = f"{request.scheme}://{request.get_host()}" + reverse(
-                "pages-root", args=(conf["code"],)
+                "pages-list", args=(conf["code"],)
             )
         return Response(languages)
 
