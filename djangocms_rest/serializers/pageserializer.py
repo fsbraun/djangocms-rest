@@ -1,4 +1,3 @@
-import datetime
 
 from cms.models import PageContent
 from django.contrib.contenttypes.models import ContentType
