@@ -1,10 +1,18 @@
 # Django CMS REST
 
-This is a demo project that provides RESTful APIs for Django CMS.
+This is a demo project that provides RESTful APIs for Django CMS. Currently, it offers public read-only access to pages and placeholders. This allows for the retrieval of structured and nested content from your Django CMS instance in a programmatic way.
+
+Please note that this project is in its early stages and more features will be added in the future. For now, it provides basic functionality for placeholders.
 
 ## Features
 
-- Basic functionality for placeholders
+- Basic functionality for reading public pages and placeholders
+- Optional HTML rendering for placeholder content (including sekizai blocks)
+
+## To dos
+
+- Full language fallback support
+- Admin api for editing content
 
 ## Requirements
 
@@ -56,5 +64,3 @@ like to change.
 
 [BSD-3](https://github.com/fsbraun/djangocms-rest/blob/main/LICENSE)
 ```
-
-Please replace the repository URL, dependencies, and other project-specific details as necessary.

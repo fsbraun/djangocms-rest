@@ -46,9 +46,9 @@ class PageList(APIView):
         if request.user.is_anonymous:
             qs = qs.filter(login_required=False)
         pages = (
-            RESTPage(request, page, language=language)
+            RESTPage(request, page.get_content_obj(language, fallback=True))
             for page in qs
-            if user_can_view_page(request.user, page)
+            if user_can_view_page(request.user, page) and page.get_content_obj(language, fallback=True)
         )
         serializer = PageSerializer(pages, many=True, read_only=True)
         return Response(serializer.data)
@@ -87,7 +87,7 @@ class PageDetail(APIView):
             raise Http404
 
         serializer = PageSerializer(
-            RESTPage(request, page, language=language), read_only=True
+            RESTPage(request, page.get_content_obj(language, fallback=True)), read_only=True
         )
         return Response(serializer.data)
 
