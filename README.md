@@ -1,3 +1,6 @@
+[![codecov](https://codecov.io/gh/fsbraun/djangocms-rest/graph/badge.svg?token=RKQJL8L8BT)](https://codecov.io/gh/fsbraun/djangocms-rest)
+[![djangocms4]( https://img.shields.io/badge/django%20CMS-4-blue.svg)](https://www.django-cms.org/en/)
+
 # Django CMS REST
 
 This is a demo project that provides RESTful APIs for Django CMS. Currently, it offers public read-only access to pages and placeholders. This allows for the retrieval of structured and nested content from your Django CMS instance in a programmatic way.
@@ -15,7 +18,7 @@ Please note that this project is in its early stages and more features will be a
 - Menu api
 - Admin api for editing content
   - Placeholder API (adding, deleting, plugins)
-  - Plugin API (changing, rendering, getting options)    
+  - Plugin API (changing, rendering, getting options)
 - Tests
 
 ## Requirements
