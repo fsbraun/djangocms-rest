@@ -8,7 +8,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 from rest_framework.views import APIView as DRFAPIView
 
-from djangocms_rest.serializers.pageserializer import PageSerializer, RESTPage
+from djangocms_rest.serializers.pageserializer import PageContentSerializer
 from djangocms_rest.serializers.placeholder import PlaceholderSerializer
 
 
@@ -46,11 +46,11 @@ class PageList(APIView):
         if request.user.is_anonymous:
             qs = qs.filter(login_required=False)
         pages = (
-            RESTPage(request, page.get_content_obj(language, fallback=True))
+            page.get_content_obj(language, fallback=True)
             for page in qs
             if user_can_view_page(request.user, page) and page.get_content_obj(language, fallback=True)
         )
-        serializer = PageSerializer(pages, many=True, read_only=True)
+        serializer = PageContentSerializer(request, pages, many=True, read_only=True)
         return Response(serializer.data)
 
 

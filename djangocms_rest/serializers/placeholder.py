@@ -8,8 +8,11 @@ from cms.models import Placeholder
 from cms.plugin_rendering import BaseRenderer, ContentRenderer
 from cms.utils.conf import get_cms_setting
 from cms.utils.plugins import get_plugins
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.shortcuts import get_current_site
+from django.db import models
 from django.template.defaulttags import now
+from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 from sekizai.context import SekizaiContext
@@ -238,3 +241,37 @@ class PlaceholderSerializer(serializers.Serializer):
             "html": content,
             **{key: "".join(value) for key, value in sekizai_blocks.items() if value},
         }
+
+
+class PlaceholderRelationFieldSerializer(serializers.Serializer):
+    def __init__(self, request: Request, instance: models.Model, placeholders, language: str, *args, **kwargs) -> None:
+        self.placeholders = placeholders
+        self.language: str = language
+        super().__init__(instance,*args, **kwargs)
+        self.host: str = f"{request.scheme}://{request.get_host()}"
+
+        for placeholder in self.placeholders:
+            self.fields[placeholder.slot] = serializers.JSONField()
+
+    def to_representation(self, instance):
+        content_type_id = ContentType.objects.get_for_model(
+            instance.__class__
+        ).pk
+
+        return (
+            {
+                placeholder.slot: self.host
+                + reverse(
+                    "placeholder-detail",
+                    args=(
+                        self.language,
+                        content_type_id,
+                        instance.pk,
+                        placeholder.slot,
+                    ),
+                )
+                for placeholder in self.placeholders
+            }
+            if instance
+            else {}
+        )
