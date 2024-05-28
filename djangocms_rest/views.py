@@ -86,8 +86,8 @@ class PageDetail(APIView):
         if not user_can_view_page(request.user, page):
             raise Http404
 
-        serializer = PageSerializer(
-            RESTPage(request, page.get_content_obj(language, fallback=True)), read_only=True
+        serializer = PageContentSerializer(
+            request, page.get_content_obj(language, fallback=True), read_only=True
         )
         return Response(serializer.data)
 

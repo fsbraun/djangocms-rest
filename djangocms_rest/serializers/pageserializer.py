@@ -1,7 +1,4 @@
-from cms.models import PageContent
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 
