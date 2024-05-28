@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 
@@ -76,7 +77,6 @@ class PageContentSerializer(serializers.Serializer):
             placeholder.slot
             for placeholder in page_content.page.get_declared_placeholders()
         ]
-        print(f"{declared_slots=}")
         placeholders = [
             placeholder
             for placeholder in page_content.page.get_placeholders(page_content.language)
@@ -104,7 +104,13 @@ class PageContentSerializer(serializers.Serializer):
             "absolute_url": page_content.page.get_absolute_url(
                 page_content.language
             ),
-            "path": page_content.page.get_path(page_content.language),
+            "path": f"{self.request.scheme}://{self.request.get_host()}" + reverse(
+                "cms-page-root",
+                args=(page_content.language,)
+            ) if page_content.page.is_home else f"{self.request.scheme}://{self.request.get_host()}" + reverse(
+                "cms-page-detail",
+                args=(page_content.language, page_content.page.get_path(page_content.language),)
+            ),
             "is_home": page_content.page.is_home,
             "languages": page_content.page.languages.split(","),
         }
