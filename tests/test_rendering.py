@@ -31,7 +31,7 @@ class RenderingTestCase(RESTTestCase):
             "code", "name", "public", "redirect_on_fallback", "fallbacks",
             "hide_untranslated"
         )
-        result = self.client.get(reverse("languages-list"))
+        result = self.client.get(reverse("cms-language-list"))
         self.assertEqual(result.status_code, 200)
         data = {item["code"]: item for item in result.json()}
 
