@@ -6,6 +6,7 @@ from django.urls import reverse
 class RESTTestCase(CMSTestCase):
     prefix = "http://testserver"
 
+
 class RenderingTestCase(RESTTestCase):
     def _create_pages(self, page_list, parent=None):
         new_pages =  [create_page(

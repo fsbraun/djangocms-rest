@@ -17,5 +17,5 @@ jobs:
         run: pip install --upgrade ruff
       - name: Run ruff
         run: |
-          ruff djangocms_rest
-          ruff tests
+          ruff check djangocms_rest
+          ruff check tests
