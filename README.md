@@ -8,11 +8,6 @@
 djangocms-rest enables frontend projects to consume django CMS content through a browseable
 read-only, REST/JSON API. It is based on the django rest framework (DRF).
 
-For the following topics please see the ../README.md
-- installation and setup instructions
-- questions and support options
-- collaboration and contributions to this project
-
 ## What is headless mode?
 
 A Headless CMS (Content Management System) is a backend-only content management system that provides
@@ -103,7 +98,7 @@ can be serialized.
 
 Yes, djangocms-text has both HTML blob and structured JSON support for rich text.
 
-URLs to other CMS objects are dynamic, in the form of `cms.object-name:<uid>`, for example
+URLs to other CMS objects are dynamic, in the form of `<app-name>.<object-name>:<uid>`, for example
 `cms.page:2`. The frontend can then use this to resolve the object and create the appropriate URLs
 to the object's frontend representation.
 
@@ -124,7 +119,7 @@ content available via the REST API.
 Install using pip:
 
 ```bash
-pip install git+https://github.com/fsbraun/djangocms_rest@main
+pip install git+https://github.com/fsbraun/djangocms-rest@main
 ```
 
 Update your `INSTALLED_APPS` setting:
