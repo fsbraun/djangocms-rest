@@ -7,6 +7,57 @@ class RESTTestCase(CMSTestCase):
     prefix = "http://testserver"
 
 
+class AliasAPITestCase(RESTTestCase):
+    def setUp(self):
+        super().setUp()
+        # Create a test page with multiple language versions
+        self.page = create_page(
+            "test page",
+            template="INHERIT",
+            language="en",
+            published=True
+        )
+        # Create language versions
+        self.page.create_translation('de', title='Testseite')
+        self.page.create_translation('fr', title='page de test')
+        
+    def test_alias_list(self):
+        """Test that the alias list endpoint returns correct data"""
+        url = reverse("cms-alias-list", kwargs={"language": "en"})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Verify structure of returned data
+        self.assertTrue(isinstance(data, list))
+        if len(data) > 0:
+            alias = data[0]
+            self.assertIn('url', alias)
+            self.assertIn('redirect_to', alias)
+            self.assertIn('language', alias)
+            self.assertIn('is_active', alias)
+            
+    def test_alias_language_filter(self):
+        """Test that aliases are correctly filtered by language"""
+        url = reverse("cms-alias-list", kwargs={"language": "de"})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Verify all returned aliases are for German language
+        for alias in data:
+            self.assertEqual(alias['language'], 'de')
+            
+    def test_invalid_language(self):
+        """Test that invalid language code returns 404"""
+        url = reverse("cms-alias-list", kwargs={"language": "invalid"})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 404)
+
+
 class RenderingTestCase(RESTTestCase):
     def _create_pages(self, page_list, parent=None):
         new_pages =  [create_page(

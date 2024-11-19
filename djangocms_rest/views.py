@@ -1,4 +1,5 @@
 from cms.models import Page, PageUrl, Placeholder, PageContent
+from djangocms_rest.serializers.aliasserializer import AliasSerializer
 from cms.utils.conf import get_languages
 from cms.utils.i18n import get_language_tuple
 from cms.utils.page_permissions import user_can_view_page
@@ -89,6 +90,34 @@ class PageDetail(APIView):
         serializer = PageContentSerializer(
             request, page.get_content_obj(language, fallback=True), read_only=True
         )
+        return Response(serializer.data)
+
+
+class AliasList(APIView):
+    """
+    List of all page aliases for a given language.
+    Returns URL aliases and their redirect targets.
+    """
+
+    def get(self, request, language, format=None):
+        site = get_current_site(request)
+        allowed_languages = [lang[0] for lang in get_language_tuple(site.pk)]
+        if language not in allowed_languages:
+            raise Http404
+            
+        aliases = PageUrl.objects.get_for_site(site).filter(language=language)
+        
+        # Filter out non-viewable pages for anonymous users
+        if request.user.is_anonymous:
+            aliases = aliases.filter(page__login_required=False)
+            
+        # Filter based on page permissions
+        aliases = [
+            alias for alias in aliases 
+            if user_can_view_page(request.user, alias.page)
+        ]
+        
+        serializer = AliasSerializer(aliases, many=True)
         return Response(serializer.data)
 
 
