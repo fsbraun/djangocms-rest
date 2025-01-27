@@ -32,6 +32,6 @@ jobs:
       run: coverage run runtests.py
 
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v5.0.2
+      uses: codecov/codecov-action@v5.3.1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
