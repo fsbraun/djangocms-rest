@@ -1,15 +1,19 @@
-from cms.models import Page, PageUrl, Placeholder, PageContent
+from cms.models import Page, PageContent
 from cms.utils.conf import get_languages
 from cms.utils.i18n import get_language_tuple
 from cms.utils.page_permissions import user_can_view_page
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import Http404
 from django.urls import reverse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView as DRFAPIView
 
-from djangocms_rest.serializers.pageserializer import PageContentSerializer
+from djangocms_rest.serializers.language_serializers import LanguageSerializer
+from djangocms_rest.serializers.pageserializer import PageContentSerializer, PageMetaSerializer
 from djangocms_rest.serializers.placeholder import PlaceholderSerializer
+from djangocms_rest.utils import get_object, get_placeholder
 
 
 class APIView(DRFAPIView):
@@ -23,21 +27,28 @@ class LanguageList(APIView):
     link to the list of pages for that languages.
     """
 
-    def get(self, request, format=None):
+    @extend_schema(
+        responses={200: LanguageSerializer},
+    )
+    def get(self, request: Request) -> Response:
         languages = get_languages().get(get_current_site(request).id, None)
         if languages is None:
             raise Http404
         for conf in languages:
-            conf["pages"] = f"{request.scheme}://{request.get_host()}" + reverse(
-                "cms-page-list", args=(conf["code"],)
-            )
-        return Response(languages)
+            conf["pages"] = f"{request.scheme}://{request.get_host()}" + reverse("cms-page-list", args=(conf["code"],))
+        serializer = LanguageSerializer(languages, many=True)
+        return Response(serializer.data)
 
 
-class PageList(APIView):
-    """List of all pages on this site for a given language."""
+class PageTreeList(APIView):
+    """
+    List of all pages on this site for a given language.
+    """
 
-    def get(self, request, language, format=None):
+    @extend_schema(
+        responses=PageMetaSerializer, description="Get a list of all pages for the given language on the current site."
+    )
+    def get(self, request, language):
         site = get_current_site(request)
         allowed_languages = [lang[0] for lang in get_language_tuple(site.id)]
         if language not in allowed_languages:
@@ -50,7 +61,11 @@ class PageList(APIView):
             for page in qs
             if user_can_view_page(request.user, page) and page.get_content_obj(language, fallback=True)
         )
-        serializer = PageContentSerializer(request, pages, many=True, read_only=True)
+        serializer = PageMetaSerializer(
+            pages,
+            many=True,
+            read_only=True,
+        )
         return Response(serializer.data)
 
 
@@ -60,36 +75,43 @@ class PageDetail(APIView):
     their links to retrieve dynamic content.
     """
 
-    def get_object(self, site, path):
-        page_urls = (
-            PageUrl.objects.get_for_site(site)
-            .filter(path=path)
-            .select_related("page__node")
-        )
-        page_urls = list(page_urls)  # force queryset evaluation to save 1 query
-        try:
-            page = page_urls[0].page
-        except IndexError:
-            raise Http404
-        else:
-            page.urls_cache = {url.language: url for url in page_urls}
-        return page
-
-    def get(self, request, language, path="", format=None):
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="language",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="Language code (e.g. 'en' or 'de')",
+            ),
+            OpenApiParameter(
+                name="path",
+                type=str,
+                location=OpenApiParameter.PATH,
+                required=False,
+                description="Optional page path. If omitted, the home page is returned.",
+            ),
+        ],
+        responses=PageContentSerializer,
+        description="Get a page instance with placeholders and their links to retrieve dynamic content.",
+    )
+    def get(self, request: Request, language: str, path: str = "") -> Response:
         site = get_current_site(request)
         allowed_languages = [lang[0] for lang in get_language_tuple(site.pk)]
         if language not in allowed_languages:
             raise Http404
-        page = self.get_object(site, path)
 
-        # Check if the user has permission to view the page
+        page = get_object(site, path)
+
         if not user_can_view_page(request.user, page):
             raise Http404
 
-        serializer = PageContentSerializer(
-            request, page.get_content_obj(language, fallback=True), read_only=True
-        )
-        return Response(serializer.data)
+        page_content = page.get_content_obj(language, fallback=True)
+        serializer = PageContentSerializer(page_content, read_only=True)
+        try:
+            data = serializer.data
+        except PageContent.DoesNotExist:
+            raise Http404
+        return Response(data)
 
 
 class PlaceholderDetail(APIView):
@@ -107,32 +129,15 @@ class PlaceholderDetail(APIView):
     - "html": The content rendered as html. Sekizai blocks such as "js" or "css" will be added
       as separate attributes"""
 
-    def get_placeholder(self, content_type_id, object_id, slot):
-        try:
-            placeholder = Placeholder.objects.get(
-                content_type_id=content_type_id, object_id=object_id, slot=slot
-            )
-        except Placeholder.DoesNotExist:
-            raise Http404
-        return placeholder
-
-    def get(self, request, language, content_type_id, object_id, slot, format=None):
-        placeholder = self.get_placeholder(content_type_id, object_id, slot)
+    def get(self, request: Request, language: str, content_type_id: int, object_id: int, slot: str) -> Response:
+        placeholder = get_placeholder(content_type_id, object_id, slot)
         if placeholder is None:
             raise Http404
-        source = (
-            placeholder.content_type.model_class()
-            .objects.filter(pk=placeholder.object_id)
-            .first()
-        )
+        source = placeholder.content_type.model_class().objects.filter(pk=placeholder.object_id).first()
         if source is None:
             raise Http404
         # Check if the user has permission to view the page (should the placeholder be on a page)
-        if isinstance(source, PageContent) and not user_can_view_page(
-            request.user, source.page
-        ):
+        if isinstance(source, PageContent) and not user_can_view_page(request.user, source.page):
             raise Http404
-        serializer = PlaceholderSerializer(
-            request, placeholder, language, read_only=True
-        )
+        serializer = PlaceholderSerializer(request, placeholder, language, read_only=True)
         return Response(serializer.data)
