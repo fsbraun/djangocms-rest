@@ -4,7 +4,7 @@ from cms.models import PageContent
 from django.db import models
 from rest_framework import serializers
 
-from djangocms_rest.serializers.placeholder import PlaceholderRelationSerializer
+from djangocms_rest.serializers.placeholders import PlaceholderRelationSerializer
 
 
 class BasePageSerializer(serializers.Serializer):

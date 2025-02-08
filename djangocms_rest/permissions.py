@@ -5,7 +5,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from .views_base import BaseAPIView
+from djangocms_rest.views_base import BaseAPIView
 
 
 class IsAllowedLanguage(BasePermission):

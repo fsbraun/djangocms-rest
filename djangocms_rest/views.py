@@ -9,9 +9,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from djangocms_rest.permissions import CanViewPage, CanViewPageContent, IsAllowedLanguage
-from djangocms_rest.serializers.language_serializers import LanguageSerializer
-from djangocms_rest.serializers.pageserializer import PageContentSerializer, PageMetaSerializer
-from djangocms_rest.serializers.placeholder import PlaceholderSerializer
+from djangocms_rest.serializers.languages import LanguageSerializer
+from djangocms_rest.serializers.pages import PageContentSerializer, PageMetaSerializer
+from djangocms_rest.serializers.placeholders import PlaceholderSerializer
 from djangocms_rest.utils import get_object, get_placeholder
 from djangocms_rest.views_base import BaseAPIView
 

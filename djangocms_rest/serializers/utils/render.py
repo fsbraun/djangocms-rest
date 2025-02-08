@@ -4,6 +4,7 @@ from cms.models import CMSPlugin
 from cms.plugin_rendering import ContentRenderer
 from rest_framework import serializers
 from sekizai.context import SekizaiContext
+from sekizai.helpers import get_varname
 
 
 def render_plugin(instance: CMSPlugin, context: Dict[str, Any]) -> Optional[Dict[str, Any]]:

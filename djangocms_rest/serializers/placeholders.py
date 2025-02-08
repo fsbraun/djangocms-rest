@@ -9,8 +9,8 @@ from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 
-from djangocms_rest.serializers.cache_utils import get_placeholder_rest_cache, set_placeholder_rest_cache
-from djangocms_rest.serializers.utils import render_html, render_plugin
+from djangocms_rest.serializers.utils.cache import get_placeholder_rest_cache, set_placeholder_rest_cache
+from djangocms_rest.serializers.utils.render import render_html, render_plugin
 
 
 class PlaceholderRenderer(BaseRenderer):
