@@ -69,19 +69,6 @@ class PageDetailView(BaseAPIView):
     their links to retrieve dynamic content.
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._site = None
-
-    @property
-    def site(self):
-        """
-        Lazily fetch and cache the current site, avoiding circular imports.
-        """
-        if self._site is None:
-            self._site = get_current_site(self.request)
-        return self._site
-
     permission_classes = [CanViewPage]
 
     @extend_schema(
