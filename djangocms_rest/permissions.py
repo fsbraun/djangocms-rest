@@ -1,4 +1,4 @@
-from cms.models import PageContent
+from cms.models import Page, PageContent
 from cms.utils.i18n import get_language_tuple
 from cms.utils.page_permissions import user_can_view_page
 from rest_framework.exceptions import NotFound
@@ -27,10 +27,12 @@ class CanViewPage(IsAllowedLanguage):
     Check whether the provided language is allowed and the user can view the page.
     """
 
-    def has_object_permission(self, request: Request, view: BaseAPIView, obj: PageContent) -> bool:
-        if not super().has_permission(request, view):
-            raise NotFound()
-        return user_can_view_page(request.user, obj)
+    def has_object_permission(self, request: Request, view: BaseAPIView, obj: Page) -> bool:
+        if isinstance(obj, Page):
+            if not super().has_permission(request, view):
+                raise NotFound()
+            return user_can_view_page(request.user, obj)
+        return False
 
 
 class CanViewPageContent(IsAllowedLanguage):
