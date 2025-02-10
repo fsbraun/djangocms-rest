@@ -4,7 +4,6 @@ from cms.utils.page_permissions import user_can_view_page
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import Http404
 from django.urls import reverse
-from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +13,20 @@ from djangocms_rest.serializers.pages import PageContentSerializer, PageMetaSeri
 from djangocms_rest.serializers.placeholders import PlaceholderSerializer
 from djangocms_rest.utils import get_object, get_placeholder
 from djangocms_rest.views_base import BaseAPIView
+
+try:
+    from drf_spectacular.utils import extend_schema
+except ImportError:
+
+    def extend_schema(*args, **kwargs):
+        """
+        Empty decorator for when drf-spectacular is not installed.
+        """
+
+        def decorator(func):
+            return func
+
+        return decorator
 
 
 class LanguageListView(BaseAPIView):
@@ -72,21 +85,6 @@ class PageDetailView(BaseAPIView):
     permission_classes = [CanViewPage]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                name="language",
-                type=str,
-                location=OpenApiParameter.PATH,
-                description="Language code (e.g. 'en' or 'de')",
-            ),
-            OpenApiParameter(
-                name="path",
-                type=str,
-                location=OpenApiParameter.PATH,
-                required=False,
-                description="Optional page path. If omitted, the home page is returned.",
-            ),
-        ],
         responses=PageContentSerializer,
         description="Get a page instance with placeholders and their links to retrieve dynamic content.",
     )
