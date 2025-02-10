@@ -40,4 +40,4 @@ class RenderingTestCase(RESTTestCase):
             lang = lang_config["code"]
             for item in check_items:
                 self.assertEqual(lang_config[item], data[lang][item])
-            self.assertEqual(data[lang]["pages"], self.prefix + reverse("cms-page-list", args=[lang]))
+            self.assertEqual(data[lang]["pages"], self.prefix + reverse("page-tree-list", args=[lang]))

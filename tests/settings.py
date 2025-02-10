@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'filer',
     'easy_thumbnails',
 
-    'tests.test_app',
+    #'tests.test_app',
 ]
 
 MIDDLEWARE = [
