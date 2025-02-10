@@ -43,7 +43,7 @@ class LanguageListView(BaseAPIView):
         if languages is None:
             raise Http404
         for conf in languages:
-            conf["pages"] = f"{request.scheme}://{request.get_host()}" + reverse("cms-page-list", args=(conf["code"],))
+            conf["pages"] = f"{request.scheme}://{request.get_host()}" + reverse("page-tree-list", args=(conf["code"],))
         serializer = LanguageSerializer(languages, many=True)
         return Response(serializer.data)
 
