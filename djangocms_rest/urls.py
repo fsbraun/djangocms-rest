@@ -10,6 +10,6 @@ urlpatterns = [
     path(
         "<slug:language>/placeholders/<int:content_type_id>/<int:object_id>/<str:slot>/",
         PlaceholderDetailView.as_view(),
-        name="cms-placeholder-detail",
+        name="placeholder-detail",
     ),
 ]

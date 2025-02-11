@@ -132,7 +132,7 @@ class PlaceholderRelationFieldSerializer(serializers.Serializer):
             {
                 placeholder.slot: self.host
                 + reverse(
-                    "cms-placeholder-detail",
+                    "placeholder-detail",
                     args=(
                         self.language,
                         content_type_id,
