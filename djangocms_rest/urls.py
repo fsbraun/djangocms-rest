@@ -1,17 +1,15 @@
 from django.urls import path
-from rest_framework.urlpatterns import format_suffix_patterns
-from . import views
+
+from djangocms_rest.views import LanguageListView, PageDetailView, PageTreeListView, PlaceholderDetailView
 
 urlpatterns = [
-    path("", views.LanguageList.as_view(), name="cms-language-list"),
-    path("<slug:language>/pages", views.PageList.as_view(), name="cms-page-list"),
-    path("<slug:language>/pages/", views.PageDetail.as_view(), name="cms-page-root"),
-    path("<slug:language>/pages/<path:path>/", views.PageDetail.as_view(), name="cms-page-detail"),
+    path("languages/", LanguageListView.as_view(), name="language-list"),
+    path("<slug:language>/pages-tree/", PageTreeListView.as_view(), name="page-tree-list"),
+    path("<slug:language>/pages-root/", PageDetailView.as_view(), name="page-root"),
+    path("<slug:language>/pages/<path:path>/", PageDetailView.as_view(), name="page-detail"),
     path(
         "<slug:language>/placeholders/<int:content_type_id>/<int:object_id>/<str:slot>/",
-        views.PlaceholderDetail.as_view(),
-        name="cms-placeholder-detail",
+        PlaceholderDetailView.as_view(),
+        name="placeholder-detail",
     ),
 ]
-
-urlpatterns = format_suffix_patterns(urlpatterns)
