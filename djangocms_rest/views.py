@@ -14,31 +14,13 @@ from djangocms_rest.serializers.placeholders import PlaceholderSerializer
 from djangocms_rest.utils import get_object, get_placeholder
 from djangocms_rest.views_base import BaseAPIView
 
-try:
-    from drf_spectacular.utils import extend_schema
-except ImportError:
-
-    def extend_schema(*args, **kwargs):
-        """
-        Empty decorator for when drf-spectacular is not installed.
-        """
-
-        def decorator(func):
-            return func
-
-        return decorator
-
 
 class LanguageListView(BaseAPIView):
-    """
-    List of languages available for the site. For each language the API returns the
-    link to the list of pages for that languages.
-    """
+    serializer_class = LanguageSerializer
 
-    @extend_schema(
-        responses={200: LanguageSerializer},
-    )
     def get(self, request: Request) -> Response:
+        """List of languages available for the site. For each language the API returns the
+        link to the list of pages for that languages."""
         languages = get_languages().get(get_current_site(request).id, None)
         if languages is None:
             raise Http404
@@ -49,16 +31,11 @@ class LanguageListView(BaseAPIView):
 
 
 class PageTreeListView(BaseAPIView):
-    """
-    List of all pages on this site for a given language.
-    """
-
     permission_classes = [IsAllowedLanguage]
+    serializer_class = PageMetaSerializer
 
-    @extend_schema(
-        responses=PageMetaSerializer, description="Get a list of all pages for the given language on the current site."
-    )
     def get(self, request, language):
+        """List of all pages on this site for a given language."""
         site = self.site
         qs = Page.objects.filter(node__site=site)
         if request.user.is_anonymous:
@@ -77,18 +54,12 @@ class PageTreeListView(BaseAPIView):
 
 
 class PageDetailView(BaseAPIView):
-    """
-    Retrieve a page instance. The page instance includes the placeholders and
-    their links to retrieve dynamic content.
-    """
-
     permission_classes = [CanViewPage]
+    serializer_class = PageContentSerializer
 
-    @extend_schema(
-        responses=PageContentSerializer,
-        description="Get a page instance with placeholders and their links to retrieve dynamic content.",
-    )
     def get(self, request: Request, language: str, path: str = "") -> Response:
+        """Retrieve a page instance. The page instance includes the placeholders and
+        their links to retrieve dynamic content."""
         site = self.site
         page = get_object(site, path)
         self.check_object_permissions(request, page)
@@ -102,23 +73,22 @@ class PageDetailView(BaseAPIView):
 
 
 class PlaceholderDetailView(BaseAPIView):
-    """Placeholder contain the dynamic content. This view retrieves the content as a
-    structured nested object.
-
-    Attributes:
-
-    - "slot": The slot name of the placeholder.
-    - "content": The content of the placeholder as a nested JSON tree
-    - "language": The language of the content
-    - "label": The verbose label of the placeholder
-
-    Optional (if the get parameter `?html=1` is added to the API url):
-    - "html": The content rendered as html. Sekizai blocks such as "js" or "css" will be added
-      as separate attributes"""
-
+    serializer_class = PlaceholderSerializer
     permission_classes = [CanViewPageContent]
 
     def get(self, request: Request, language: str, content_type_id: int, object_id: int, slot: str) -> Response:
+        """Placeholder contain the dynamic content. This view retrieves the content as a
+        structured nested object.
+
+        Attributes:
+        - "slot": The slot name of the placeholder.
+        - "content": The content of the placeholder as a nested JSON tree
+        - "language": The language of the content
+        - "label": The verbose label of the placeholder
+
+        Optional (if the get parameter `?html=1` is added to the API url):
+        - "html": The content rendered as html. Sekizai blocks such as "js" or "css" will be added
+          as separate attributes"""
         placeholder = get_placeholder(content_type_id, object_id, slot)
         if placeholder is None:
             raise Http404
@@ -129,5 +99,5 @@ class PlaceholderDetailView(BaseAPIView):
 
         self.check_object_permissions(request, source)
 
-        serializer = PlaceholderSerializer(request, placeholder, language, read_only=True)
+        serializer = self.serializer_class(instance=placeholder, request=request, language=language, read_only=True)
         return Response(serializer.data)

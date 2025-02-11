@@ -96,23 +96,29 @@ class PlaceholderSerializer(serializers.Serializer):
     language = serializers.CharField()
     content = serializers.ListSerializer(child=serializers.JSONField(), allow_empty=True, required=False)
 
-    def __init__(self, request: Request, placeholder: Placeholder, language: str, *args, **kwargs):
-        renderer = PlaceholderRenderer(request)
-        placeholder.content = renderer.render_placeholder(
-            placeholder,
-            context={},
-            language=language,
-            use_cache=True,
-        )
-        if request.GET.get("html", False):
-            html = render_html(request, placeholder, language)
-            for key, value in html.items():
-                if not hasattr(placeholder, key):
-                    setattr(placeholder, key, value)
-                    self.fields[key] = serializers.CharField()
-        placeholder.label = placeholder.get_label()
-        placeholder.language = language
-        super().__init__(placeholder, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        request = kwargs.pop('request', None)
+        placeholder = kwargs.pop('instance', None)
+        language = kwargs.pop('language', None)
+        super().__init__(*args, **kwargs)
+
+        if placeholder and request and language:
+            renderer = PlaceholderRenderer(request)
+            placeholder.content = renderer.render_placeholder(
+                placeholder,
+                context={},
+                language=language,
+                use_cache=True,
+            )
+            if request.GET.get("html", False):
+                html = render_html(request, placeholder, language)
+                for key, value in html.items():
+                    if not hasattr(placeholder, key):
+                        setattr(placeholder, key, value)
+                        self.fields[key] = serializers.CharField()
+            placeholder.label = placeholder.get_label()
+            placeholder.language = language
+            self.instance = placeholder
 
 
 class PlaceholderRelationFieldSerializer(serializers.Serializer):
